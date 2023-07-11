@@ -21,16 +21,15 @@ public class EuropeanSolitaireModel implements MarbleSolitaireModel {
 
   public EuropeanSolitaireModel(int sideLength, int row, int col) {
     if (sideLength < 3 || sideLength % 2 == 0) {
-      throw new IllegalArgumentException("Side length must be an odd number greater than or equal to 3");
+      throw new IllegalArgumentException("Side length must be greater than or equal to 3");
     }
 
-    if (row < 0 || col < 0 || row > sideLength || col > sideLength) {
+    if (row < 0 || col < 0) {
       throw new IllegalArgumentException("Initial empty cell position (" + row + "," + col + ")");
     }
 
     this.sideLength = sideLength;
-    int armThickness = sideLength / 2 + 1;
-    int size = 3 * armThickness - 2;
+    int size = 3 * sideLength - 2;
     this.board = new SlotState[size][size];
     this.score = 0;
 
@@ -39,8 +38,7 @@ public class EuropeanSolitaireModel implements MarbleSolitaireModel {
 
 
   private void initializeBoard(int row, int col) {
-    int armThickness = sideLength / 2 + 1; // assuming sideLength = 2*armThickness - 1
-    int size = 3 * armThickness - 2;
+    int size = 3 * sideLength - 2;
 
     // Initialize all slots as INVALID
     for (int i = 0; i < size; i++) {
@@ -55,28 +53,55 @@ public class EuropeanSolitaireModel implements MarbleSolitaireModel {
         if (isValidPosition(i, j)) {
           board[i][j] = SlotState.Marble;
           score++;
+        } else {
+          board[i][j] = SlotState.Invalid;
         }
       }
     }
-//TODO issue not fixed
+
     // Set the given slot as EMPTY
     if (isValidPosition(row, col)) {
       board[row][col] = SlotState.Empty;
       score--;
     } else {
       throw new IllegalArgumentException(
-              "Invalid empty cell position (" + row + "," + col + ")");
+              "Invalid empty cell position 2 (" + row + "," + col + ")");
     }
   }
 
   private boolean isValidPosition(int row, int col) {
-    int armThickness = sideLength / 2 + 1;
-    int size = 3 * armThickness - 2;  // Assuming size = 3 * armThickness - 2
+    int armThickness = sideLength;
+    int size = 3 * armThickness - 2;
+
+    for (int i = 1; i <= armThickness - 2; i++) {
+      for (int j = 1; j <= i; j++) {
+        // Quadrant 1
+        if ((row == i && col == armThickness - j - 1) ||
+                (row == armThickness - j - 1 && col == i)) {
+          return true;
+        }
+        // Quadrant 2
+        if ((row == i && col == size - armThickness + j) ||
+                (row == armThickness - j - 1 && col == size - i - 1)) {
+          return true;
+        }
+        // Quadrant 3
+        if ((row == size - i - 1 && col == size - armThickness + j) ||
+                (row == size - armThickness + j && col == size - i - 1)) {
+          return true;
+        }
+        // Quadrant 4
+        if ((row == size - i - 1 && col == armThickness - j - 1) ||
+                (row == size - armThickness + j && col == i)) {
+          return true;
+        }
+      }
+    }
+
     // Outside the board
     if (row < 0 || col < 0 || row >= size || col >= size) {
       return false;
     }
-
     // In the corners of the board
     if (((row < (armThickness - 1)) && (col < (armThickness - 1)))
             || ((row < (armThickness - 1)) && (col >= ((size - armThickness) + 1)))
@@ -91,7 +116,17 @@ public class EuropeanSolitaireModel implements MarbleSolitaireModel {
   @Override
   public void move(int fromRow, int fromCol, int toRow, int toCol) throws IllegalArgumentException {
     if (!isValidMove(fromRow, fromCol, toRow, toCol)) {
-      throw new IllegalArgumentException("Invalid move 33");
+      throw new IllegalArgumentException("Invalid move");
+    }
+
+    // Check if 'from' position contains a marble
+    if (board[fromRow][fromCol] != SlotState.Marble) {
+      throw new IllegalArgumentException("No marble at 'from' position");
+    }
+
+    // Check if 'to' position is empty
+    if (board[toRow][toCol] != SlotState.Empty) {
+      throw new IllegalArgumentException("'to' position is not empty");
     }
 
     board[fromRow][fromCol] = SlotState.Empty;
@@ -108,7 +143,7 @@ public class EuropeanSolitaireModel implements MarbleSolitaireModel {
     int rowDiff = Math.abs(toRow - fromRow);
     int colDiff = Math.abs(toCol - fromCol);
 
-    if ((rowDiff == 0 && colDiff == 2) || (rowDiff == 2 && colDiff == 0)) {
+    if ((rowDiff == 2 && colDiff == 0) || (colDiff == 2 && rowDiff == 0)) {
       int midRow = (fromRow + toRow) / 2;
       int midCol = (fromCol + toCol) / 2;
 
@@ -120,21 +155,39 @@ public class EuropeanSolitaireModel implements MarbleSolitaireModel {
 
   @Override
   public boolean isGameOver() {
-    for (int row = 0; row < sideLength; row++) {
-      for (int col = 0; col < sideLength; col++) {
+    int size = 3 * sideLength - 2;
+    for (int row = 0; row < size; row++) {
+      for (int col = 0; col < size; col++) {
         if (board[row][col] == SlotState.Marble) {
-          if (isValidMove(row, col, row, col + 2) ||
-                  isValidMove(row, col, row, col - 2) ||
-                  isValidMove(row, col, row + 2, col) ||
-                  isValidMove(row, col, row - 2, col)) {
-            return false; // At least one valid move available, game is not over
+          // Check if any possible moves can be made
+          // Horizontal and Vertical moves
+          for (int d = -2; d <= 2; d += 4) {
+            // Horizontal
+            if (isValidMove(row, col, row, col + d)) {
+              return false; // At least one valid move available, game is not over
+            }
+            // Vertical
+            if (isValidMove(row, col, row + d, col)) {
+              return false; // At least one valid move available, game is not over
+            }
+          }
+
+          // Diagonal moves
+          for (int dr = -2; dr <= 2; dr += 4) {
+            for (int dc = -2; dc <= 2; dc += 4) {
+              if (isValidMove(row, col, row + dr, col + dc)) {
+                return false; // At least one valid move available, game is not over
+              }
+            }
           }
         }
       }
     }
 
-    return true; // No valid moves available, game is over
+    // If we reach this point, it means there are no valid moves available, thus the game is over
+    return true;
   }
+
 
   @Override
   public int getBoardSize() {
@@ -143,8 +196,9 @@ public class EuropeanSolitaireModel implements MarbleSolitaireModel {
 
   @Override
   public SlotState getSlotAt(int row, int col) throws IllegalArgumentException {
-    if (!isValidPosition(row, col)) {
-      throw new IllegalArgumentException("Invalid position 44 (" + row + ", " + col + ")");
+    int boardSize = board.length;
+    if (row < 0 || col < 0 || row >= boardSize || col >= boardSize) {
+      throw new IllegalArgumentException("Invalid position (" + row + ", " + col + ")");
     }
 
     return board[row][col];
@@ -155,66 +209,72 @@ public class EuropeanSolitaireModel implements MarbleSolitaireModel {
     return score;
   }
 
+  public String getGameState() {
+    StringBuilder builder = new StringBuilder();
+    int size = 3 * sideLength - 2;
+
+    for (int i = 0; i < size; i++) {
+      StringBuilder lineBuilder = new StringBuilder();
+      for (int j = 0; j < size; j++) {
+        if (!isValidPosition(i, j)) {
+          lineBuilder.append("  "); // For invalid positions
+        } else {
+          switch (board[i][j]) {
+            case Marble:
+              lineBuilder.append("O ");
+              break;
+            case Empty:
+              lineBuilder.append("_ ");
+              break;
+            default:
+              lineBuilder.append("  "); // For invalid positions
+              break;
+          }
+        }
+      }
+      // Remove extra space at the end of each line and add newline character
+      String line = lineBuilder.toString().stripTrailing();
+      builder.append(line);
+
+      if (i < size - 1) {
+        builder.append("\n");
+      }
+    }
+
+    return builder.toString();
+  }
+
   public static void main(String[] args) {
     try {
-      EuropeanSolitaireModel model = new EuropeanSolitaireModel(3, 0, 3);
-
-
-      // Make a single upward move
-      model.move(2, 3, 0, 3);
-      System.out.println("Game state after a single upward move:\n");
+      EuropeanSolitaireModel model = new EuropeanSolitaireModel(3, 3, 3);
+      System.out.println("Initial game state:");
+      System.out.println(model.getGameState());
     } catch (IllegalArgumentException e) {
       e.printStackTrace();
     }
-  }
 
-//  public static void main(String[] args) {
+//    EuropeanSolitaireModel model = new EuropeanSolitaireModel();
+//    String expectedGameState = """
+//                O O O
+//              O O O O O
+//            O O O O O O O
+//            O O O _ O O O
+//            O O O O O O O
+//              O O O O O
+//                O O O""";
+//
+//    System.out.println("Initial game state:");
+//    System.out.println(model.getGameState());
+//
+//    if (model.getGameState().equals(expectedGameState)) {
+//      System.out.println("Test passed! The game state matches the expected state.");
+//    } else {
+//      System.out.println("Test failed. The game state doesn't match the expected state.");
+//    }
+    //  public static void main(String[] args) {
 //    printBoard(3);  // armThickness = 3
 //  }
 //
-//  public static void printBoard(int armThickness) {
-//    enum SlotState {
-//      INVALID, MARBLE, EMPTY
-//    }
-//    int size = 3 * armThickness - 2;
-//    SlotState[][] board = new SlotState[size][size];
-//
-//    // Initialize all slots as VALID
-//    for (int i = 0; i < size; i++) {
-//      for (int j = 0; j < size; j++) {
-//        board[i][j] = SlotState.MARBLE;
-//      }
-//    }
-//
-//    // Set INVALID slots
-//    for (int i = 0; i < armThickness - 1; i++) {
-//      for (int j = 0; j < armThickness - 1; j++) {
-//        board[i][j] = SlotState.INVALID;  // Top-left rectangle
-//        board[i][j + 2 * armThickness - 1] = SlotState.INVALID;  // Top-right rectangle
-//        board[i + 2 * armThickness - 1][j] = SlotState.INVALID;  // Bottom-left rectangle
-//        board[i + 2 * armThickness - 1][j + 2 * armThickness - 1] = SlotState.INVALID;
-//        board[armThickness][armThickness] = SlotState.EMPTY;// Bottom-right rectangle
-//      }
-//    }
-//
-//    // Set MARBLE slots
-//    board[1][1] = SlotState.MARBLE; // (1,1)
-//    board[1][5] = SlotState.MARBLE; // (1,5)
-//    board[5][1] = SlotState.MARBLE; // (5,1)
-//    board[5][5] = SlotState.MARBLE; // (5,5)
 
-//    // Print the board
-//    for (int i = 0; i < size; i++) {
-//      for (int j = 0; j < size; j++) {
-//        if (board[i][j] == SlotState.MARBLE) {
-//          System.out.print("O ");
-//        } else if (board[i][j] == SlotState.EMPTY) {
-//          System.out.print("_ ");
-//        } else {
-//          System.out.print("  ");
-//        }
-//      }
-//      System.out.println();
-//    }
-//  }
+  }
 }
