@@ -1,97 +1,88 @@
 package cs5004.marblesolitaire.model.hw07;
 
+import cs5004.marblesolitaire.model.hw05.MarbleSolitaireModel;
+
+/**
+ * This class represents the TriangleSolitaireModel that implements MarbleSolitaireModel.
+ */
 public class TriangleSolitaireModel implements MarbleSolitaireModel {
   private final int dimensions;
   private final SlotState[][] board;
   private int score;
+  private final int emptyRow;
+  private final int emptyCol;
 
   public TriangleSolitaireModel() {
-    this(6, 0, 0);
+    this(5, 0, 0);
   }
 
-  public TriangleSolitaireModel(int dimensions) {
+  public TriangleSolitaireModel(int dimensions) throws  IllegalArgumentException {
     this(dimensions, 0, 0);
   }
 
-  public TriangleSolitaireModel(int row, int col) {
-    this(6, row, col);
+  public TriangleSolitaireModel(int row, int col) throws IllegalArgumentException {
+    this(5, row, col);
   }
 
-  public TriangleSolitaireModel(int dimensions, int row, int col) {
+  /**
+   * Constructs a new TriangleSolitaireModel with the given dimensions and empty cell position.
+   *
+   * @param dimensions The number of cells on each side of the triangle.
+   *                   Must be a positive integer.
+   * @param row The row index of the initial empty cell. Must be a non-negative integer.
+   * @param col The column index of the initial empty cell. Must be a non-negative integer.
+   *
+   * @throws IllegalArgumentException if dimensions is not a positive integer.
+   * @throws IllegalArgumentException if row or col are negative integers.
+   */
+  public TriangleSolitaireModel(int dimensions, int row, int col) throws IllegalArgumentException {
     if (dimensions <= 0) {
       throw new IllegalArgumentException("Dimensions must be a positive number");
     }
-    if (row < 0 || row >= dimensions || col < 0 || col > row) {
-      throw new IllegalArgumentException("Invalid position (" + row + "," + col + ")");
+    if (row < 0 || col < 0) {
+      throw new IllegalArgumentException("Invalid position 1 (" + row + "," + col + ")");
     }
 
     this.dimensions = dimensions;
+    this.emptyRow = row;
+    this.emptyCol = col;
     this.board = new SlotState[dimensions][];
-    this.score = 0;
+    this.score = (dimensions * (dimensions + 1)) / 2 - 1;
 
     initializeBoard();
   }
 
   private void initializeBoard() {
     for (int row = 0; row < dimensions; row++) {
-      board[row] = new SlotState[row + 1];
-      for (int col = 0; col <= row; col++) {
-        board[row][col] = SlotState.Marble;
-      }
-    }
-    board[0][0] = SlotState.Empty; // Set the top slot as empty
-  }
-
-  @Override
-  public void move(int fromRow, int fromCol, int toRow, int toCol) throws IllegalArgumentException {
-    if (!isValidMove(fromRow, fromCol, toRow, toCol)) {
-      throw new IllegalArgumentException("Invalid move");
-    }
-
-    board[fromRow][fromCol] = SlotState.Empty;
-    board[toRow][toCol] = SlotState.Marble;
-    board[(fromRow + toRow) / 2][(fromCol + toCol) / 2] = SlotState.Empty;
-    score--;
-  }
-
-  @Override
-  public boolean isGameOver() {
-    for (int row = 0; row < dimensions; row++) {
-      for (int col = 0; col <= row; col++) {
-        if (board[row][col] == SlotState.Marble) {
-          if (isValidMove(row, col, row + 2, col)
-                  || isValidMove(row, col, row + 2, col + 2)
-                  || isValidMove(row, col, row, col + 2)) {
-            return false; // At least one valid move available, game is not over
-          }
+      board[row] = new SlotState[dimensions];  // Make every row the same length
+      for (int col = 0; col < dimensions; col++) {
+        if (col > row) {  // This cell is not within the triangle
+          board[row][col] = SlotState.Invalid;
+        } else {  // This cell is within the triangle
+          board[row][col] = SlotState.Marble;
         }
       }
     }
-    return true; // No valid moves available, game is over
-  }
-
-  @Override
-  public int getBoardSize() {
-    return dimensions;
-  }
-
-  @Override
-  public SlotState getSlotAt(int row, int col) throws IllegalArgumentException {
-    if (row < 0 || row >= dimensions || col < 0 || col > row) {
-      throw new IllegalArgumentException("Invalid position (" + row + "," + col + ")");
+    // Set the specified slot as empty
+    if (emptyRow < dimensions && emptyCol < board[emptyRow].length && emptyCol <= emptyRow) {
+      board[emptyRow][emptyCol] = SlotState.Empty;
+    } else {
+      throw new IllegalArgumentException("Invalid empty slot position");
     }
-    return board[row][col];
   }
 
-  @Override
-  public int getScore() {
-    return score;
-  }
 
   private boolean isValidMove(int fromRow, int fromCol, int toRow, int toCol) {
-    if (toRow < 0 || toRow >= dimensions || toCol < 0 || toCol > toRow) {
-      return false; // Destination position is out of bounds
+    if (fromRow < 0 || fromRow >= dimensions || fromCol < 0
+            || fromCol >= board[fromRow].length || fromRow < fromCol) {
+      return false; // Starting position is out of bounds or invalid
     }
+
+    if (toRow < 0 || toRow >= dimensions || toCol < 0
+            || toCol >= board[toRow].length || toRow < toCol) {
+      return false; // Destination position is out of bounds or invalid
+    }
+
 
     int rowDiff = Math.abs(toRow - fromRow);
     int colDiff = Math.abs(toCol - fromCol);
@@ -104,11 +95,99 @@ public class TriangleSolitaireModel implements MarbleSolitaireModel {
     int midRow = (fromRow + toRow) / 2;
     int midCol = (fromCol + toCol) / 2;
 
-    if (board[fromRow][fromCol] == SlotState.Marble && board[toRow][toCol] == SlotState.Empty &&
-            board[midRow][midCol] == SlotState.Marble) {
-      return true; // Valid move, positions contain marbles and an empty slot
+    return board[fromRow][fromCol] == SlotState.Marble && board[toRow][toCol] == SlotState.Empty
+            && board[midRow][midCol] == SlotState.Marble; // Valid move, positions contain marbles
+  }
+
+  @Override
+  public void move(int fromRow, int fromCol, int toRow, int toCol) throws IllegalArgumentException {
+    if (!isValidMove(fromRow, fromCol, toRow, toCol)) {
+      throw new IllegalArgumentException("Invalid move 3");
     }
 
-    return false; // Invalid move
+    if (fromRow < fromCol || toRow < toCol) {
+      throw new IllegalArgumentException("Invalid position: row cannot be less than col");
+    }
+
+    if (!isValidMove(fromRow, fromCol, toRow, toCol)) {
+      throw new IllegalArgumentException("Invalid movedasdasdasd");
+    }
+
+    board[fromRow][fromCol] = SlotState.Empty;
+    board[toRow][toCol] = SlotState.Marble;
+    board[(fromRow + toRow) / 2][(fromCol + toCol) / 2] = SlotState.Empty;
+    score--;
   }
+
+  @Override
+  public boolean isGameOver() {
+    // 1. No more valid move
+    for (int row = 0; row < dimensions; row++) {
+      for (int col = 0; col <= row; col++) {
+        if (board[row][col] == SlotState.Marble) {
+          // check the other positions
+          int[][] potentialMoves = {
+                  {row - 2, col},
+                  {row + 2, col},
+                  {row, col - 2},
+                  {row, col + 2},
+                  {row + 2, col + 2},
+                  {row - 2, col - 2}
+          };
+          for (int[] move : potentialMoves) {
+            int newRow = move[0];
+            int newCol = move[1];
+            if (newRow >= 0 && newCol >= 0 && newRow < dimensions && newCol <= newRow
+                    && isValidMove(row, col, newRow, newCol)) {
+              return false; // there has valid move.
+            }
+          }
+        }
+      }
+    }
+
+    // 2. all the pegs are removed
+    int marbleCount = 0;
+    for (int row = 0; row < dimensions; row++) {
+      for (int col = 0; col <= row; col++) {
+        if (board[row][col] == SlotState.Marble) {
+          marbleCount++;
+        }
+      }
+    }
+    return marbleCount <= 1;
+  }
+
+
+  @Override
+  public int getBoardSize() {
+    return dimensions;
+  }
+
+
+
+
+  @Override
+  public SlotState getSlotAt(int row, int col) throws IllegalArgumentException {
+    if (row < 0 || col < 0 || row >= dimensions || col >= dimensions) {
+      throw new IllegalArgumentException("Invalid position kk  (" + row + "," + col + ")");
+    }
+
+    return board[row][col];
+  }
+
+  @Override
+  public int getScore() {
+    return score;
+  }
+
+  public void gameStatus() {
+    System.out.println(this.toString());
+  }
+
+  public static void main(String[] args) {
+    TriangleSolitaireModel game = new TriangleSolitaireModel(5, 0, 0);
+    game.gameStatus();
+  }
+
 }

@@ -84,6 +84,7 @@ public class MarbleSolitaireTextView implements MarbleSolitaireView {
    *
    * @throws IOException if transmission of the board to the provided data destination fails
    */
+  @Override
   public void renderBoard() throws IOException {
     ap.append(toString());
   }
@@ -94,6 +95,7 @@ public class MarbleSolitaireTextView implements MarbleSolitaireView {
    * @param message the message to be transmitted
    * @throws IOException if transmission of the board to the provided data destination fails
    */
+  @Override
   public void renderMessage(String message) throws IOException {
     if (message == null) {
       throw new IllegalArgumentException("Message cannot be null");

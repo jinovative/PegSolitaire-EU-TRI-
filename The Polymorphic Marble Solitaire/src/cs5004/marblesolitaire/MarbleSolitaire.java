@@ -1,57 +1,58 @@
 package cs5004.marblesolitaire;
 
+import java.io.IOException;
+
+import cs5004.marblesolitaire.model.hw05.EnglishSolitaireModel;
 import cs5004.marblesolitaire.model.hw05.MarbleSolitaireModel;
-import cs5004.marblesolitaire.model.hw07.EnglishSolitaireModel;
 import cs5004.marblesolitaire.model.hw07.EuropeanSolitaireModel;
 import cs5004.marblesolitaire.model.hw07.TriangleSolitaireModel;
+import cs5004.marblesolitaire.view.MarbleSolitaireTextView;
 import cs5004.marblesolitaire.view.MarbleSolitaireView;
 import cs5004.marblesolitaire.view.TriangleSolitaireTextView;
 
-
+/**
+ * These arguments will appear in the String[] args parameter to your main method.
+ */
 public final class MarbleSolitaire {
+  /**
+   *  This argument will decide which board shape (and hence which model and view) you should use.
+   * @param args decide which board shape
+   */
   public static void main(String[] args) {
-    if (args.length < 1) {
-      System.out.println("Usage: java MarbleSolitaire <board_shape> [-size N] [-hole R C]");
-      return;
-    }
+    for (int i = 0; i < args.length; i += 3) {
+      MarbleSolitaireModel game;
+      MarbleSolitaireView view;
+      String gameType = args[i];
 
-    String boardShape = args[0];
-    int size = -1;
-    int holeRow = -1;
-    int holeCol = -1;
+      // Parse the size of the game board
+      int size = Integer.parseInt(args[i + 2]);
 
-    // Process command-line arguments
-    for (int i = 1; i < args.length; i++) {
-      if ("-size".equals(args[i]) && i + 1 < args.length) {
-        size = Integer.parseInt(args[i + 1]);
-        i++;
-      } else if ("-hole".equals(args[i]) && i + 2 < args.length) {
-        holeRow = Integer.parseInt(args[i + 1]);
-        holeCol = Integer.parseInt(args[i + 2]);
-        i += 2;
+      // Check the type of game and create the corresponding model
+      switch (gameType.toLowerCase()) {
+        case "english":
+          game = new EnglishSolitaireModel(size);
+          view = new MarbleSolitaireTextView(game);
+          break;
+        case "triangle":
+          game = new TriangleSolitaireModel(size);
+          view = new TriangleSolitaireTextView(game);
+          break;
+        case "european":
+          game = new EuropeanSolitaireModel(size);
+          view = new MarbleSolitaireTextView(game);
+          break;
+        default:
+          throw new IllegalArgumentException("Invalid game type: " + gameType);
       }
-    }
 
-    MarbleSolitaireModel model = createModel(boardShape, size, holeRow, holeCol);
-    if (model == null) {
-      System.out.println("Invalid board shape: " + boardShape);
-      return;
-    }
-
-    MarbleSolitaireView view = new TriangleSolitaireTextView(model);
-    view.renderBoard();
-  }
-
-  private static MarbleSolitaireModel createModel(String boardShape, int size, int holeRow, int holeCol) {
-    switch (boardShape) {
-      case "english":
-        return new EnglishSolitaireModel(size, holeRow, holeCol);
-      case "european":
-        return (MarbleSolitaireModel) new EuropeanSolitaireModel();
-      case "triangular":
-        return (MarbleSolitaireModel) new TriangleSolitaireModel(size, holeRow, holeCol);
-      default:
-        return null;
+      // Display the game board
+      try {
+        view.renderBoard();
+        System.out.println("\n-----------------------");
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }
+

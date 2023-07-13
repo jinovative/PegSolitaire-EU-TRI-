@@ -56,31 +56,37 @@ public class EnglishSolitaireModel implements MarbleSolitaireModel {
    * @param sRow the row index of the empty slot
    * @param sCol the column index of the empty slot
    */
-  private void initializeBoard(int sRow, int sCol) {
-    int maxIndex = size - 1;
-    int unplayableDimension = maxIndex / 3;
-    int emptyRow = (maxIndex - 1) / 2;
-    int emptyCol = (maxIndex - 1) / 2;
+  private void initializeBoard(int row, int col) {
+    int size = getBoardSize();
 
-    // Loops through each cell on the game board and assigns the appropriate
-    for (int row = 0; row < size; row++) {
-      for (int col = 0; col < size; col++) {
-        if (validPosition(row, col)) {
-          if (row == sRow && col == sCol) {
-            board[row][col] = SlotState.Empty;
-            score--; // Decrease the score for the initial empty slot
-          } else {
-            board[row][col] = SlotState.Marble;
-            score++; // Increase the score for each marble
-          }
+    // Initialize all slots as INVALID
+    for (int i = 0; i < size; i++) {
+      for (int j = 0; j < size; j++) {
+        board[i][j] = SlotState.Invalid;
+      }
+    }
+
+    // Set valid slots as MARBLE
+    for (int i = 0; i < size; i++) {
+      for (int j = 0; j < size; j++) {
+        if (validPosition(i, j)) {
+          board[i][j] = SlotState.Marble;
+          score++;
         } else {
-          board[row][col] = SlotState.Invalid;
+          board[i][j] = SlotState.Invalid;
         }
       }
     }
+
+    // Set the given slot as EMPTY
+    if (validPosition(row, col)) {
+      board[row][col] = SlotState.Empty;
+      score--;
+    } else {
+      throw new IllegalArgumentException(
+              "Invalid empty cell position 2 (" + row + "," + col + ")");
+    }
   }
-
-
 
   /**
    * Checks if the specified position is valid on the game board.
@@ -90,24 +96,33 @@ public class EnglishSolitaireModel implements MarbleSolitaireModel {
    * @return {@code true} if the position is valid, {@code false} otherwise
    */
   private boolean validPosition(int row, int col) {
-    int maxIndex = size - 1;
-    int unplayableDimension = maxIndex / 3;
-    int emptyRow = (maxIndex - 1) / 2;
-    int emptyCol = (maxIndex - 1) / 2;
+    int armThickness = (getBoardSize() + 2) / 3;
+    int size = 3 * armThickness - 2;
 
-    // Check if the position is within the bounds of the board
-    if (row < 0 || row > maxIndex || col < 0 || col > maxIndex) {
+    // Outside the board
+    if (row < 0 || col < 0 || row >= size || col >= size) {
       return false;
     }
 
-    // Check if the position matches the specified form for Invalid cells
-    boolean inInvalidRow = (row < unplayableDimension && col < unplayableDimension)
-            || (row < unplayableDimension && col > maxIndex - unplayableDimension)
-            || (row > maxIndex - unplayableDimension && col < unplayableDimension)
-            || (row > maxIndex - unplayableDimension && col > maxIndex - unplayableDimension);
-    return !inInvalidRow; // Invalid position
+    // Invalid positions in Quadrant 1
+    if (row < armThickness - 1 && col < armThickness - 1) {
+      return false;
+    }
 
-    // All other positions are valid
+    // Invalid positions in Quadrant 2
+    if (row < armThickness - 1 && col >= size - armThickness + 1) {
+      return false;
+    }
+
+    // Invalid positions in Quadrant 3
+    if (row >= size - armThickness + 1 && col >= size - armThickness + 1) {
+      return false;
+    }
+
+    // Invalid positions in Quadrant 4
+    return row < size - armThickness + 1 || col >= armThickness - 1;
+
+    // If none of the above conditions are met, it's a valid position
   }
 
   /**
